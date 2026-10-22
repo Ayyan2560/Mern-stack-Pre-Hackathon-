@@ -1,9 +1,14 @@
+import 'dotenv/config';
 import  express  from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import connectDB from "./config/db.mjs";
 import authRoutes from "./routes/authroutes.mjs";
 import profileRoutes from './routes/profileroutes.mjs';
+import cloudinary from './config/cloudinary.mjs';
+import postRoutes from './routes/postRoutes.mjs';
+
+
 const app = express()
 
 app.use(express.json());
@@ -17,6 +22,14 @@ app.get("/", (req, res)=>{
  
 app.use("/api/profile", profileRoutes);
 
-app.listen (5000 , ()=>{
-    console.log("Server is running on port 5000");
-})
+app.use("/api/posts", postRoutes);
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
+  cloudinary.api.ping()
+    .then(() => console.log('Cloudinary connected successfully'))
+    .catch((error) => {
+      console.error('Cloudinary connection failed:', error.message);
+    });
+});

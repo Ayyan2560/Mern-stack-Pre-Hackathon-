@@ -1,5 +1,8 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/user.mjs';
+import cloudinary from '../config/cloudinary.mjs';
+import streamifier from 'streamifier';
+
 
 // UPDATE PROFILE
 export const updateProfile = async (req, res) => {
@@ -162,3 +165,151 @@ export const changePassword = async (req, res) => {
     });
   }
 };
+
+
+export const uploadProfilePicture = async (req, res) => {
+  let newPublicId = '';
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select an image',
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Upload new image to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'mern-profile-pictures',
+          resource_type: 'image',
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      );
+
+      streamifier
+        .createReadStream(req.file.buffer)
+        .pipe(stream);
+    });
+
+    newPublicId = uploadResult.public_id;
+
+    // Save new image details in MongoDB
+    const oldPublicId = user.profilePicture?.publicId;
+
+    user.profilePicture = {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+    };
+
+    await user.save();
+
+    // Delete old image only after the new image is saved
+    if (oldPublicId && oldPublicId !== newPublicId) {
+      try {
+        await cloudinary.uploader.destroy(oldPublicId);
+      } catch (deleteError) {
+        console.error(
+          'Old image deletion failed:',
+          deleteError.message
+        );
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      profilePicture: user.profilePicture,
+    });
+  } catch (error) {
+
+    // Remove newly uploaded image if saving fails
+    if (newPublicId) {
+      try {
+        await cloudinary.uploader.destroy(newPublicId);
+      } catch (deleteError) {
+        console.error(
+          'New image cleanup failed:',
+          deleteError.message
+        );
+      }
+    }
+
+    console.error('Profile picture upload error:', error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to upload profile picture',
+    });
+  }
+};
+
+
+
+export const removeProfilePicture = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    const publicId = user.profilePicture?.publicId;
+
+    if (!publicId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No profile picture to remove',
+      });
+    }
+
+    // Delete image from Cloudinary
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result !== 'ok' && result.result !== 'not found') {
+      return res.status(502).json({
+        success: false,
+        message: 'Could not remove profile picture from Cloudinary',
+      });
+    }
+
+    // Clear image details in MongoDB
+    user.profilePicture = {
+      url: '',
+      publicId: '',
+    };
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile picture removed successfully',
+    });
+  } catch (error) {
+    console.error('Remove profile picture error:', error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to remove profile picture',
+    });
+  }
+};
+
+
+

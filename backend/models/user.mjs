@@ -44,7 +44,16 @@ emailVerificationExpires: {
   type: Date,
   default: undefined,
 },
-
+profilePicture: {
+  url: {
+    type: String,
+    default: '',
+  },
+  publicId: {
+    type: String,
+    default: '',
+  },
+},
   },
   {
     timestamps: true,
