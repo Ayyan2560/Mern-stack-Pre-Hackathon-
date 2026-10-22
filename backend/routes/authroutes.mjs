@@ -8,6 +8,7 @@ import {
   logout,
   verifyEmail,
   getMe,
+
 } from '../controllers/authController.mjs';
  import { protect } from '../middleware/authmiddleware.mjs';
 

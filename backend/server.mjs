@@ -5,6 +5,7 @@ import connectDB from "./config/db.mjs";
 import authRoutes from "./routes/authroutes.mjs";
 import profileRoutes from './routes/profileroutes.mjs';
 const app = express()
+
 app.use(express.json());
 
 connectDB()
