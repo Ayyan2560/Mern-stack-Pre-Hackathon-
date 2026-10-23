@@ -1,0 +1,3 @@
+$kind: collection
+description: Update comment body/field names if your controller uses different naming. The route file confirms paths and methods.
+order: 4000

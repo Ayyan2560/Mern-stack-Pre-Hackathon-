@@ -1,0 +1,16 @@
+$kind: http-request
+description: Use form-data field "profilePicture" and choose an image file.
+url: "{{baseUrl}}/api/profile/picture"
+method: PATCH
+body:
+  type: formdata
+  content:
+    - type: file
+      key: profilePicture
+      src:
+        - ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 4000

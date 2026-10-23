@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/posts"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated title",
+      "content": "Updated content"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 4000

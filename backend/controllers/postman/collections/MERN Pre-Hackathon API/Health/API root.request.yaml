@@ -1,0 +1,7 @@
+$kind: http-request
+description: "Expected simple server response: Hello, World!"
+url: "{{baseUrl}}/"
+method: GET
+auth:
+  type: noauth
+order: 1000

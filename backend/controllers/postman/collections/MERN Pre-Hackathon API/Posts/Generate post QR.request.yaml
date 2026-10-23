@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/posts/qr"
+method: GET
+auth:
+  type: noauth
+order: 6000

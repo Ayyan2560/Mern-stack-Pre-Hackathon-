@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/api/posts/comments"
+method: GET
+auth:
+  type: noauth
+order: 8000

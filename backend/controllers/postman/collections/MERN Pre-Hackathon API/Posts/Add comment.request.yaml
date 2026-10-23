@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/posts/comments"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "text": "Nice post!"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 9000

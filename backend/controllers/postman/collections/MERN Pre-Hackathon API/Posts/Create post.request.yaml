@@ -1,0 +1,22 @@
+$kind: http-request
+description: Use form-data. Add additional "images" rows for up to 5 images.
+url: "{{baseUrl}}/api/posts"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: title
+      value: My first post
+    - type: text
+      key: content
+      value: Post content goes here
+    - type: file
+      key: images
+      src:
+        - ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 1000

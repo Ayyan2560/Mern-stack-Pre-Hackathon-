@@ -1,0 +1,17 @@
+$kind: collection
+description: Postman collection for the backend routes confirmed from the project's route files. Set baseUrl and token before testing. Request body fields are starter examples and may need to match controller validation.
+variables:
+  baseUrl: http://localhost:5000
+  token: ""
+  postId: ""
+  userId: ""
+  notificationId: ""
+  resetToken: ""
+  verificationToken: ""
+  commentId: ""
+auth:
+  - id: 72da7a77-66f3-4817-acb6-f70e87940e7c
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"

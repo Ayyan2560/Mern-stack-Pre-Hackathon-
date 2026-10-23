@@ -1,0 +1,14 @@
+$kind: http-request
+name: Bookmark / remove bookmark
+url: "{{baseUrl}}/api/posts/bookmark"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 11000

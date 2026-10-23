@@ -30,6 +30,7 @@ resetPasswordExpires: {
   type: Date,
   default: undefined,
 },
+
 isEmailVerified: {
   type: Boolean,
   default: false,
@@ -44,6 +45,7 @@ emailVerificationExpires: {
   type: Date,
   default: undefined,
 },
+
 profilePicture: {
   url: {
     type: String,
@@ -54,6 +56,13 @@ profilePicture: {
     default: '',
   },
 },
+
+bookmarks: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post',
+  },
+],
   },
   {
     timestamps: true,

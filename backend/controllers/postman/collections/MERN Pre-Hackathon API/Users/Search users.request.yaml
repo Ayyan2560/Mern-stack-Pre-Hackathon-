@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/users/search?q=ayyan"
+method: GET
+queryParams:
+  q: ayyan
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 1000

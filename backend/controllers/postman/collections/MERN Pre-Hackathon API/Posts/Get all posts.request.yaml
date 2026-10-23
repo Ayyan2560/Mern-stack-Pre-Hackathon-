@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/posts?page=1&limit=10&search=&sort=newest&userId="
+method: GET
+queryParams:
+  page: "1"
+  limit: "10"
+  search: ""
+  sort: newest
+  userId: ""
+auth:
+  type: noauth
+order: 2000

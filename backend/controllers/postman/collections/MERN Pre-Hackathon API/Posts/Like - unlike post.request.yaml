@@ -1,0 +1,14 @@
+$kind: http-request
+name: Like / unlike post
+url: "{{baseUrl}}/api/posts/like"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+order: 7000
