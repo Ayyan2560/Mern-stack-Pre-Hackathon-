@@ -1,0 +1,45 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ArrowUpRight, Bell, Bookmark, CalendarDays, Check, ChevronDown, Clock3, Compass, Grid2X2, Heart, Menu, MessageCircle, Plus, Search, Sparkles, Trophy, Users, X } from "lucide-react";
+
+const posts = [
+  { id: 1, author: "Aarav Mehta", initials: "AM", role: "Product designer", time: "2h", title: "Our team just shipped the first prototype for CareLoop", body: "A calmer way for caregivers to coordinate daily routines. Looking for one more frontend builder to help us polish the mobile experience.", tags: ["HealthTech", "Seeking teammate"], likes: 48, comments: 12, color: "coral" },
+  { id: 2, author: "Zoya Khan", initials: "ZK", role: "Full-stack developer", time: "5h", title: "What if local climate data felt as easy as checking the weather?", body: "Working on an open data layer for neighborhood-level air quality. The first dashboard is live and the API is ready for testers.", tags: ["Climate", "Open source"], likes: 76, comments: 19, color: "mint" },
+  { id: 3, author: "Dev Patel", initials: "DP", role: "Computer science student", time: "1d", title: "Looking for a teammate who loves messy data", body: "Building a hackathon project around public transport accessibility. Data storytelling, maps, and a little bit of chaos included.", tags: ["CivicTech", "Team forming"], likes: 31, comments: 8, color: "lilac" },
+];
+
+const events = [
+  { name: "Build for Bharat", date: "24–26 Oct", location: "Online · India", people: "1,240", accent: "orange" },
+  { name: "Climate Code Jam", date: "02 Nov", location: "Bengaluru · Hybrid", people: "486", accent: "green" },
+  { name: "Future of Work", date: "10 Nov", location: "Online · Global", people: "902", accent: "purple" },
+];
+
+export default function Home() {
+  const [activeNav, setActiveNav] = useState("Discover");
+  const [query, setQuery] = useState("");
+  const [liked, setLiked] = useState<number[]>([]);
+  const [bookmarked, setBookmarked] = useState<number[]>([]);
+  const [joined, setJoined] = useState<string[]>([]);
+  const [showComposer, setShowComposer] = useState(false);
+  const filtered = useMemo(() => posts.filter((post) => `${post.title} ${post.body} ${post.tags.join(" ")}`.toLowerCase().includes(query.toLowerCase())), [query]);
+
+  return <main className="app-shell">
+    <aside className="sidebar">
+      <div className="brand"><span className="brand-mark"><Sparkles size={16} /></span><span>hack<span className="brand-accent">hub</span></span></div>
+      <div className="profile-card"><div className="avatar avatar-orange">RK</div><div><strong>Riya Kapoor</strong><span>Builder · Mumbai</span></div><ChevronDown size={15} /></div>
+      <nav className="nav-list" aria-label="Main navigation">{[{label:"Discover",icon:Compass},{label:"My workspace",icon:Grid2X2},{label:"Bookmarks",icon:Bookmark},{label:"Notifications",icon:Bell}].map(({label,icon:Icon}) => <button key={label} className={`nav-item ${activeNav === label ? "active" : ""}`} onClick={() => setActiveNav(label)}><Icon size={18}/>{label}{label === "Notifications" && <span className="notif-dot"/>}</button>)}</nav>
+      <div className="sidebar-bottom"><div className="mini-label">YOUR SPACE</div><button className="nav-item"><Users size={18}/>My teams</button><button className="nav-item"><Trophy size={18}/>Achievements</button><div className="sidebar-note"><div className="note-icon"><Sparkles size={15}/></div><strong>Make something<br/>people remember.</strong><span>Share your journey with the community.</span><button onClick={() => setShowComposer(true)}>Create a post <ArrowUpRight size={14}/></button></div></div>
+    </aside>
+    <section className="content-area">
+      <header className="topbar"><button className="mobile-menu" aria-label="Open menu"><Menu size={21}/></button><div className="search-wrap"><Search size={17}/><input aria-label="Search HackHub" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search projects, people, or events"/><kbd>⌘ K</kbd></div><div className="top-actions"><button className="icon-button" aria-label="Notifications"><Bell size={19}/><span className="notification-count">3</span></button><button className="create-button" onClick={() => setShowComposer(true)}><Plus size={17}/>Create post</button><div className="avatar avatar-orange small">RK</div></div></header>
+      <div className="page-content"><div className="welcome-row"><div><div className="eyebrow">FRIDAY, 24 OCTOBER 2026</div><h1>Good morning, Riya <span>✦</span></h1><p>Here’s what’s happening in your corner of the builder community.</p></div><button className="filter-button"><Sparkles size={16}/>Personalized <ChevronDown size={15}/></button></div>
+        <div className="stats-row"><div className="stat-card"><div className="stat-icon peach"><Compass size={18}/></div><div><span>Projects exploring</span><strong>24</strong><em>+4 this week</em></div></div><div className="stat-card"><div className="stat-icon blue"><Users size={18}/></div><div><span>People in your network</span><strong>186</strong><em>+12 this month</em></div></div><div className="stat-card"><div className="stat-icon yellow"><Trophy size={18}/></div><div><span>Community points</span><strong>2,480</strong><em>Top 8% this month</em></div></div></div>
+        <div className="dashboard-grid"><div className="feed-column"><div className="section-heading"><div><h2>Community pulse</h2><p>Fresh ideas from builders you follow</p></div><button className="text-button">View all <ArrowUpRight size={15}/></button></div>{filtered.length ? filtered.map((post) => <article className="post-card" key={post.id}><div className="post-header"><div className={`avatar avatar-${post.color}`}>{post.initials}</div><div className="author-info"><strong>{post.author}</strong><span>{post.role} · {post.time}</span></div><button className="more-button" aria-label="More options">•••</button></div><h3>{post.title}</h3><p>{post.body}</p><div className="tag-row">{post.tags.map(tag => <span className={`tag ${tag === "Seeking teammate" || tag === "Team forming" ? "tag-highlight" : ""}`} key={tag}>{tag}</span>)}</div><div className="post-footer"><button className={`post-action ${liked.includes(post.id) ? "selected" : ""}`} onClick={() => setLiked(current => current.includes(post.id) ? current.filter(id => id !== post.id) : [...current, post.id])}><Heart size={17} fill={liked.includes(post.id) ? "currentColor" : "none"}/>{post.likes + (liked.includes(post.id) ? 1 : 0)}</button><button className="post-action"><MessageCircle size={17}/>{post.comments}</button><button className={`post-action save-action ${bookmarked.includes(post.id) ? "selected" : ""}`} onClick={() => setBookmarked(current => current.includes(post.id) ? current.filter(id => id !== post.id) : [...current, post.id])}><Bookmark size={17} fill={bookmarked.includes(post.id) ? "currentColor" : "none"}/></button></div></article>) : <div className="empty-state">No posts match “{query}”. Try a different search.</div>}</div>
+          <aside className="right-column"><div className="section-heading"><div><h2>Upcoming events</h2><p>Find your next challenge</p></div><button className="round-arrow" aria-label="View all events"><ArrowUpRight size={16}/></button></div><div className="events-list">{events.map(event => <div className={`event-card event-${event.accent}`} key={event.name}><div className="event-top"><span className="event-date"><CalendarDays size={14}/>{event.date}</span><span className="event-status">Open</span></div><h3>{event.name}</h3><p>{event.location}</p><div className="event-bottom"><span><Users size={14}/>{event.people} joined</span><button onClick={() => setJoined(current => current.includes(event.name) ? current.filter(name => name !== event.name) : [...current, event.name])}>{joined.includes(event.name) ? <><Check size={14}/>Joined</> : "View event"}<ArrowUpRight size={14}/></button></div></div>)}</div><div className="prompt-card"><div className="prompt-spark"><Sparkles size={18}/></div><div><strong>What are you building?</strong><p>Share an update and get feedback from the community.</p><button onClick={() => setShowComposer(true)}>Start writing <ArrowUpRight size={14}/></button></div></div></aside>
+        </div>
+      </div>
+    </section>
+    {showComposer && <div className="modal-backdrop" role="presentation" onClick={() => setShowComposer(false)}><div className="composer-modal" role="dialog" aria-modal="true" aria-labelledby="composer-title" onClick={(e) => e.stopPropagation()}><div className="modal-header"><div><div className="eyebrow">COMMUNITY POST</div><h2 id="composer-title">Share what you&apos;re building</h2></div><button className="close-button" onClick={() => setShowComposer(false)} aria-label="Close"><X size={19}/></button></div><textarea placeholder="Tell the community about your idea, progress, or the teammate you need..." autoFocus/><div className="modal-footer"><span>Be curious. Be kind. Build in public.</span><button className="create-button" onClick={() => setShowComposer(false)}>Publish post <ArrowUpRight size={15}/></button></div></div></div>}
+  </main>;
+}
