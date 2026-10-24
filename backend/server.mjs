@@ -81,22 +81,28 @@ app.use((err, req, res, next) => {
 
 
 const startServer = async () => {
-  try {
-    await connectDB();
+  await connectDB();
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 
-      cloudinary.api.ping()
-        .then(() => console.log('Cloudinary connected successfully'))
-        .catch((error) => {
-          console.error('Cloudinary connection failed:', error.message);
-        });
-    });
-  } catch (error) {
-    console.error('Server startup failed:', error.message);
-    process.exit(1);
-  }
+    const cloudinaryConfigured = [
+      process.env.CLOUDINARY_CLOUD_NAME,
+      process.env.CLOUDINARY_API_KEY,
+      process.env.CLOUDINARY_API_SECRET,
+    ].every(Boolean);
+
+    if (!cloudinaryConfigured) {
+      console.warn('Cloudinary is not configured; image uploads are disabled.');
+      return;
+    }
+
+    cloudinary.api.ping()
+      .then(() => console.log('Cloudinary connected successfully'))
+      .catch((error) => {
+        console.error('Cloudinary connection failed:', error.message);
+      });
+  });
 };
 
 startServer();
