@@ -23,12 +23,11 @@ router.post('/forgot-Password', forgotPassword);
 router.post('/logout', logout);
 
 router.get('/me', protect, getMe);
-
-router.post('/reset-password/:token', resetPassword);
-
-router.post('/verify-email/:token', verifyEmail);
+ 
+router.post('/reset-password', resetPassword);
 
 
+router.post("/verify-email", verifyEmail);
 
 
 

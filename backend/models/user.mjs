@@ -36,12 +36,12 @@ isEmailVerified: {
   default: false,
 },
 
-emailVerificationToken: {
+emailVerificationOTP: {
   type: String,
   default: undefined,
 },
 
-emailVerificationExpires: {
+emailVerificationOTPExpires: {
   type: Date,
   default: undefined,
 },

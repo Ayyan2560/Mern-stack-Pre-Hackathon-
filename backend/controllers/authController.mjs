@@ -2,111 +2,105 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/user.mjs';
 import nodemailer from 'nodemailer';
-import { randomBytes, createHash } from 'node:crypto';
-
+import { randomBytes, createHash , randomInt} from 'node:crypto';
+import sendEmail from "../utils/sendEmail.mjs";
 
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (
-      typeof name !== 'string' ||
-      typeof email !== 'string' ||
-      typeof password !== 'string' ||
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string" ||
       !name.trim() ||
       !email.trim() ||
       !password
     ) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email and password are required',
+        message: "Name, email and password are required",
       });
     }
 
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(cleanEmail)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return res.status(400).json({
         success: false,
-        message: 'Please enter a valid email address',
+        message: "Please enter a valid email address",
       });
     }
 
     if (password.length < 8) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 8 characters',
+        message: "Password must be at least 8 characters",
       });
     }
 
-    const existingUser = await User.findOne({
-      email: cleanEmail,
-    });
+    const existingUser = await User.findOne({ email: cleanEmail });
 
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'Email is already registered',
+        message: "Email is already registered",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate a random verification token
-    const verificationToken = randomBytes(32).toString('hex');
+    // Generate a 6-digit OTP
+    const otp = String(randomInt(100000, 1000000));
 
-    // Store only the token hash in MongoDB
-    const hashedVerificationToken = createHash('sha256')
-      .update(verificationToken)
-      .digest('hex');
+    // Store only the OTP hash
+    const hashedOTP = createHash("sha256")
+      .update(otp)
+      .digest("hex");
 
     const user = await User.create({
       name: cleanName,
       email: cleanEmail,
       password: hashedPassword,
       isEmailVerified: false,
-      emailVerificationToken: hashedVerificationToken,
-      emailVerificationExpires: new Date(Date.now() + 15 * 60 * 1000),
+      emailVerificationOTP: hashedOTP,
+      emailVerificationOTPExpires: new Date(
+        Date.now() + 10 * 60 * 1000
+      ),
     });
 
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 465),
-        secure: process.env.SMTP_SECURE === 'true',
+        secure: process.env.SMTP_SECURE === "true",
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
       });
 
-      const verificationUrl =
-        `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
-
       await transporter.sendMail({
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to: user.email,
-        subject: 'Verify Your Email',
-        text: `Verify your email using this link: ${verificationUrl}\nThis link expires in 15 minutes.`,
+        subject: "Your Email Verification OTP",
+        text: `Your verification OTP is ${otp}. It expires in 10 minutes.`,
       });
     } catch (emailError) {
-      // Remove the account if verification email cannot be sent
       await User.findByIdAndDelete(user._id);
 
-      console.error('Verification email failed:', emailError.message);
+      console.error("Verification email failed:", emailError.message);
 
       return res.status(500).json({
         success: false,
-        message: 'Could not send verification email. Please try again.',
+        message: "Could not send verification OTP. Please try again.",
       });
     }
 
     return res.status(201).json({
       success: true,
-      message: 'Account created. Please check your email to verify your account.',
+      message: "Account created. Please check your email for the 6-digit OTP.",
       user: {
         id: user._id.toString(),
         name: user.name,
@@ -118,19 +112,18 @@ export const signup = async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: 'Email is already registered',
+        message: "Email is already registered",
       });
     }
 
-    console.error('Signup error:', error.message);
+    console.error("Signup error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 };
-
 
 export const login = async (req, res) => {
   try {
@@ -215,14 +208,15 @@ const resetMessage =
   'If an account with that email exists, a reset link has been sent.';
 
 // 1. FORGOT PASSWORD
+
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (typeof email !== 'string' || !email.trim()) {
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Email is required',
+        message: "Email is required",
       });
     }
 
@@ -230,24 +224,26 @@ export const forgotPassword = async (req, res) => {
       email: email.trim().toLowerCase(),
     });
 
-    // Same response whether account exists or not
+    // Account existence reveal nahi karna
+    const message =
+      "If an account exists, a password reset OTP has been sent.";
+
     if (!user) {
       return res.status(200).json({
         success: true,
-        message: resetMessage,
+        message,
       });
     }
 
-    // Generate a secure random token
-    const resetToken = randomBytes(32).toString('hex');
+    const otp = String(randomInt(100000, 1000000));
 
-    // Store only the hashed token in MongoDB
-    user.resetPasswordToken = createHash('sha256')
-      .update(resetToken)
-      .digest('hex');
+    user.resetPasswordOTP = createHash("sha256")
+      .update(otp)
+      .digest("hex");
 
-    // Token expires in 15 minutes
-    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+    user.resetPasswordOTPExpires = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
 
     await user.save();
 
@@ -255,85 +251,90 @@ export const forgotPassword = async (req, res) => {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 465),
-        secure: process.env.SMTP_SECURE === 'true',
+        secure: process.env.SMTP_SECURE === "true",
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
       });
 
-      const resetUrl =
-        `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-
       await transporter.sendMail({
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to: user.email,
-        subject: 'Reset Your Password',
-        text: `Open this link to reset your password: ${resetUrl}\nThis link expires in 15 minutes.`,
+        subject: "Password Reset OTP",
+        text: `Your password reset OTP is ${otp}. It expires in 10 minutes.`,
       });
     } catch (emailError) {
-      // Invalidate token if email delivery fails
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpires = undefined;
       await user.save();
 
-      console.error('Reset email failed:', emailError.message);
+      console.error("Password reset email failed:", emailError.message);
+
+      return res.status(500).json({
+        success: false,
+        message: "Could not send reset OTP. Please try again.",
+      });
     }
 
     return res.status(200).json({
       success: true,
-      message: resetMessage,
+      message,
     });
   } catch (error) {
-    console.error('Forgot password error:', error.message);
+    console.error("Forgot password error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 };
 
+
 // 2. RESET PASSWORD
+
 export const resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
+    const { email, otp, password } = req.body;
 
     if (
-      typeof token !== 'string' ||
-      !token ||
-      typeof password !== 'string' ||
+      typeof email !== "string" ||
+      typeof otp !== "string" ||
+      !/^\d{6}$/.test(otp) ||
+      typeof password !== "string" ||
       password.length < 8
     ) {
       return res.status(400).json({
         success: false,
-        message: 'Valid token and password of at least 8 characters are required',
+        message: "Valid email, 6-digit OTP and password of at least 8 characters are required",
       });
     }
 
-    // Hash the token received through the reset link
-    const hashedToken = createHash('sha256')
-      .update(token)
-      .digest('hex');
+    const hashedOTP = createHash("sha256")
+      .update(otp)
+      .digest("hex");
 
-    // Find the user whose reset token is still valid
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: new Date() },
+      email: email.trim().toLowerCase(),
+      resetPasswordOTP: hashedOTP,
+      resetPasswordOTPExpires: { $gt: new Date() },
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Reset token is invalid or expired',
+        message: "Invalid or expired reset OTP",
       });
     }
 
-    // Hash the new password
     user.password = await bcrypt.hash(password, 10);
 
-    // Make the token unusable after successful reset
+    // OTP ko dobara use hone se rokna
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordOTPExpires = undefined;
+
+    // Purane link-based reset tokens bhi invalidate kar do
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
 
@@ -341,17 +342,18 @@ export const resetPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Password reset successfully. Please login again.',
+      message: "Password reset successfully. Please login again.",
     });
   } catch (error) {
-    console.error('Reset password error:', error.message);
+    console.error("Reset password error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 };
+
 // 3. LOGOUT
 export const logout = async (req, res) => {
   return res.status(200).json({
@@ -360,37 +362,45 @@ export const logout = async (req, res) => {
   });
 };
 // verify email
+
 export const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.params;
+    const { email, otp } = req.body;
 
-    if (typeof token !== 'string' || !token) {
+    if (
+      typeof email !== "string" ||
+      typeof otp !== "string" ||
+      !email.trim() ||
+      !/^\d{6}$/.test(otp)
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Verification token is required',
+        message: "Valid email and 6-digit OTP are required",
       });
     }
 
-    // Received token ka hash banana
-    const hashedToken = createHash('sha256')
-      .update(token)
-      .digest('hex');
+    const hashedOTP = createHash("sha256")
+      .update(otp)
+      .digest("hex");
 
-    // Valid aur unexpired token wala user find karna
     const user = await User.findOne({
-      emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: new Date() },
+      email: email.trim().toLowerCase(),
+      emailVerificationOTP: hashedOTP,
+      emailVerificationOTPExpires: { $gt: new Date() },
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired verification token',
+        message: "Invalid or expired OTP",
       });
     }
 
-    // Email verify karna
     user.isEmailVerified = true;
+    user.emailVerificationOTP = undefined;
+    user.emailVerificationOTPExpires = undefined;
+
+    // Clear old link-based verification fields too
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
 
@@ -398,17 +408,18 @@ export const verifyEmail = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Email verified successfully',
+      message: "Email verified successfully",
     });
   } catch (error) {
-    console.error('Verify email error:', error.message);
+    console.error("Verify email error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 };
+
 
 export const getMe = async (req, res) => {
   try {
@@ -437,3 +448,5 @@ export const getMe = async (req, res) => {
     });
   }
 };
+
+
