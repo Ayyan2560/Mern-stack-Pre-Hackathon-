@@ -1,207 +1,161 @@
-
-import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  UserRound,
-  Mail,
-  LockKeyhole,
-  Eye,
-  EyeOff,
-  ArrowRight,
-} from "lucide-react";
-import toast from "react-hot-toast";
-import authService from "../../features/auth/authService.mjs";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight, Mail, UserRound } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
+import AuthShell from '../../components/layout/AuthShell.jsx';
+import Button from '../../components/ui/Button.jsx';
+import { Field, PasswordInput, TextInput } from '../../components/ui/Field.jsx';
+import { signupUser } from '../../features/auth/authSlice.mjs';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { signupSchema } from '../../schemas/index.js';
 
 export default function Signup() {
-  const navigate = useNavigate();
-  const submitting = useRef(false);
+  useDocumentTitle('Create account');
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { status } = useSelector((state) => state.auth);
+  const [serverError, setServerError] = useState('');
+  const [passwordValue, setPasswordValue] = useState('');
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (error) setError("");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Prevent duplicate submissions
-    if (submitting.current) return;
-
-    if (form.name.trim().length < 2) {
-      setError("Name must contain at least 2 characters.");
-      return;
-    }
-
-    if (!form.email.trim()) {
-      setError("Email address is required.");
-      return;
-    }
-
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    submitting.current = true;
-    setLoading(true);
-    setError("");
+  const onSubmit = async (values) => {
+    setServerError('');
 
     try {
-      console.time("Signup API");
+      const result = await dispatch(
+        signupUser({
+          name: values.name.trim(),
+          email: values.email.trim(),
+          password: values.password,
+        })
+      ).unwrap();
 
-      const result = await authService.signup({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
+      toast.success(result.message || 'Account created. Check your email for the code.');
+      navigate('/verify-email', {
+        replace: true,
+        state: { email: values.email.trim(), justSignedUp: true },
       });
-
-      console.timeEnd("Signup API");
-
-      toast.success(
-        result.message ||
-          "Account created. Please check your email to verify your account."
-      );
-
-      navigate("/login", { replace: true });
-    } catch (err) {
-      console.timeEnd("Signup API");
-
-      const message =
-        err.response?.data?.message ||
-        "Signup failed. Please try again.";
-
-      setError(message);
-      toast.error(message);
-    } finally {
-      submitting.current = false;
-      setLoading(false);
+    } catch (message) {
+      setServerError(typeof message === 'string' ? message : 'Could not create your account.');
     }
   };
 
+  const loading = status === 'loading';
+
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <div className="auth-brand">
-          Connect<span>Hub.</span>
+    <AuthShell>
+      <header className="auth-card__head">
+        <p className="eyebrow">Join the atelier</p>
+        <h1>
+          Begin your <em>edition.</em>
+        </h1>
+        <p className="auth-card__intro">
+          A considered account for sharing stories and keeping the good ones close.
+        </p>
+      </header>
+
+      <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <Field label="Full name" htmlFor="signup-name" error={errors.name?.message}>
+          <TextInput
+            id="signup-name"
+            type="text"
+            placeholder="Your name"
+            autoComplete="name"
+            icon={<UserRound size={16} aria-hidden="true" />}
+            invalid={Boolean(errors.name)}
+            {...register('name')}
+          />
+        </Field>
+
+        <Field label="Email address" htmlFor="signup-email" error={errors.email?.message}>
+          <TextInput
+            id="signup-email"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            icon={<Mail size={16} aria-hidden="true" />}
+            invalid={Boolean(errors.email)}
+            {...register('email')}
+          />
+        </Field>
+
+        <div className="form-grid">
+          <Field
+            label="Password"
+            htmlFor="signup-password"
+            error={errors.password?.message}
+            hint="At least 8 characters."
+          >
+            <PasswordInput
+              id="signup-password"
+              placeholder="Create a password"
+              autoComplete="new-password"
+              invalid={Boolean(errors.password)}
+              {...register('password', {
+                onChange: (event) => setPasswordValue(event.target.value),
+              })}
+            />
+          </Field>
+
+          <Field
+            label="Confirm"
+            htmlFor="signup-confirm"
+            error={errors.confirmPassword?.message}
+          >
+            <PasswordInput
+              id="signup-confirm"
+              placeholder="Repeat password"
+              autoComplete="new-password"
+              invalid={Boolean(errors.confirmPassword)}
+              {...register('confirmPassword')}
+            />
+          </Field>
         </div>
 
-        <p className="auth-eyebrow">JOIN THE COMMUNITY</p>
+        <div className="password-meter" aria-hidden="true">
+          <span className={passwordValue.length >= 8 ? 'is-met' : ''} />
+          <span className={passwordValue.length >= 12 ? 'is-met' : ''} />
+          <span className={/[^a-zA-Z0-9]/.test(passwordValue) ? 'is-met' : ''} />
+          <p>{passwordValue.length >= 8 ? 'A good start.' : 'Use 8+ characters.'}</p>
+        </div>
 
-        <h1>Create your account</h1>
+        {serverError ? (
+          <p className="form-alert" role="alert">
+            {serverError}
+          </p>
+        ) : null}
 
-        <p className="auth-subtitle">
-          Connect with people and share your moments.
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={loading}
+          trailingIcon={<ArrowRight size={17} aria-hidden="true" />}
+        >
+          {loading ? 'Creating account…' : 'Create account'}
+        </Button>
+
+        <p className="auth-form__legal">
+          We’ll send a 6-digit code to verify your email. Nothing is posted until you choose to
+          share it.
         </p>
+      </form>
 
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="signup-name">Full name</label>
-
-          <div className="auth-input-wrap">
-            <UserRound size={18} />
-
-            <input
-              id="signup-name"
-              name="name"
-              type="text"
-              placeholder="Enter your full name"
-              value={form.name}
-              onChange={handleChange}
-              autoComplete="name"
-              minLength={2}
-              required
-            />
-          </div>
-
-          <label htmlFor="signup-email">Email address</label>
-
-          <div className="auth-input-wrap">
-            <Mail size={18} />
-
-            <input
-              id="signup-email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={handleChange}
-              autoComplete="email"
-              required
-            />
-          </div>
-
-          <label htmlFor="signup-password">Password</label>
-
-          <div className="auth-input-wrap">
-            <LockKeyhole size={18} />
-
-            <input
-              id="signup-password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Minimum 8 characters"
-              value={form.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() =>
-                setShowPassword((prev) => !prev)
-              }
-              aria-label={
-                showPassword ? "Hide password" : "Show password"
-              }
-            >
-              {showPassword ? (
-                <EyeOff size={18} />
-              ) : (
-                <Eye size={18} />
-              )}
-            </button>
-          </div>
-
-          {error && (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="auth-submit signup-submit"
-            disabled={loading}
-          >
-            {loading ? "Creating account..." : "Create account"}
-
-            {!loading && <ArrowRight size={17} />}
-          </button>
-        </form>
-
-        <p className="auth-footer">
-          Already have an account?{" "}
-          <Link to="/login">Sign in</Link>
-        </p>
-      </section>
-    </main>
+      <p className="auth-card__foot">
+        Already a member? <Link to="/login">Sign in</Link>
+      </p>
+    </AuthShell>
   );
 }

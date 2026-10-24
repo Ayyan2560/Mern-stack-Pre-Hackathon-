@@ -1,96 +1,116 @@
-
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import { loginUser } from "../../features/auth/authSlice.mjs";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight, Mail } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import AuthShell from '../../components/layout/AuthShell.jsx';
+import Button from '../../components/ui/Button.jsx';
+import { Field, PasswordInput, TextInput } from '../../components/ui/Field.jsx';
+import { clearAuthError, loginUser } from '../../features/auth/authSlice.mjs';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { loginSchema } from '../../schemas/index.js';
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  useDocumentTitle('Sign in');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { status, error } = useSelector((state) => state.auth);
+  const [serverError, setServerError] = useState('');
 
-  const { loading, error } = useSelector((state) => state.auth);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    dispatch(clearAuthError());
+  }, [dispatch]);
 
-    const result = await dispatch(
-      loginUser({ email, password })
-    );
+  const onSubmit = async (values) => {
+    setServerError('');
 
-    if (loginUser.fulfilled.match(result)) {
-      navigate("/");
+    try {
+      await dispatch(loginUser(values)).unwrap();
+      toast.success('Welcome back to Aurel.');
+      const destination = location.state?.from?.pathname || '/';
+      navigate(destination, { replace: true });
+    } catch (message) {
+      setServerError(typeof message === 'string' ? message : 'Sign in failed.');
     }
   };
 
+  const loading = status === 'loading';
+
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <div className="auth-brand">connect<span>.</span></div>
-
-        <p className="auth-eyebrow">WELCOME BACK</p>
-        <h1>Sign in to your account</h1>
-        <p className="auth-subtitle">
-          Your community is waiting for you.
+    <AuthShell>
+      <header className="auth-card__head">
+        <p className="eyebrow">Members’ entrance</p>
+        <h1>
+          Welcome <em>back.</em>
+        </h1>
+        <p className="auth-card__intro">
+          Sign in to continue reading and writing in the atelier.
         </p>
+      </header>
 
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="email">Email address</label>
-          <div className="auth-input-wrap">
-            <Mail size={18} />
-            <input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </div>
+      <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <Field label="Email address" htmlFor="login-email" error={errors.email?.message}>
+          <TextInput
+            id="login-email"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            icon={<Mail size={16} aria-hidden="true" />}
+            invalid={Boolean(errors.email)}
+            {...register('email')}
+          />
+        </Field>
 
-          <label htmlFor="password">Password</label>
-          <div className="auth-input-wrap">
-            <LockKeyhole size={18} />
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-            <button
-              className="password-toggle"
-              type="button"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              onClick={() => setShowPassword((previous) => !previous)}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+        <Field label="Password" htmlFor="login-password" error={errors.password?.message}>
+          <PasswordInput
+            id="login-password"
+            placeholder="Your password"
+            autoComplete="current-password"
+            invalid={Boolean(errors.password)}
+            {...register('password')}
+          />
+        </Field>
 
-          <div className="auth-options">
-            <span>Secure sign in</span>
-            <Link to="/forgot-password">Forgot password?</Link>
-          </div>
+        <div className="auth-form__row">
+          <span className="auth-form__secure">Secure token session</span>
+          <Link to="/forgot-password" className="text-link">
+            Forgot password?
+          </Link>
+        </div>
 
-          {error && <p className="auth-error" role="alert">{error}</p>}
+        {serverError || error ? (
+          <p className="form-alert" role="alert">
+            {serverError || error}
+          </p>
+        ) : null}
 
-          <button className="auth-submit" type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={loading}
+          trailingIcon={<ArrowRight size={17} aria-hidden="true" />}
+        >
+          {loading ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
 
-        <p className="auth-footer">
-          Don't have an account? <Link to="/signup">Create account</Link>
-        </p>
-      </section>
-    </main>
+      <p className="auth-card__foot">
+        New to Aurel? <Link to="/signup">Create an account</Link>
+      </p>
+    </AuthShell>
   );
 }
