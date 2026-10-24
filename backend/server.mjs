@@ -19,18 +19,16 @@ app.use(express.json());
 
 import cors from "cors";
 
-const allowedOrigins = [
-  "https://aurel-kappa.vercel.app/",
-  // Production frontend deploy hone par uska exact origin bhi add karna.
-];
+const allowedOrigins = ['https://aurel-kappa.vercel.app']
 
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
-);
+)
+
 
   app.use("/api/notifications", notificationRoutes);
 // Security headers 
