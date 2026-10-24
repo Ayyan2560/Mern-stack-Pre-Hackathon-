@@ -10,9 +10,27 @@ import userRoutes from './routes/userRoutes.mjs';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import notificationRoutes from './routes/notificationRoutes.mjs';
-const app = express()
 
+
+// Initialize Express app
+const app = express()
+// Middleware to parse JSON requests
 app.use(express.json());
+
+import cors from "cors";
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  // Production frontend deploy hone par uska exact origin bhi add karna.
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
   app.use("/api/notifications", notificationRoutes);
 // Security headers 
