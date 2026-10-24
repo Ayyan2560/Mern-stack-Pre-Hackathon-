@@ -20,7 +20,7 @@ app.use(express.json());
 import cors from "cors";
 
 const allowedOrigins = [
-  "http://localhost:5173",
+  "https://aurel-kappa.vercel.app/",
   // Production frontend deploy hone par uska exact origin bhi add karna.
 ];
 
